@@ -25,3 +25,4 @@ Iniciar_PDF_Pseudo.command
 run_pdf_pseudo.command
 generate_pdf.py
 test_local_workflow.py
+.config/
