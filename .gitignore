@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# macOS
+.DS_Store
+
+# Project temp
+.system_generated/
+.video_analysis/
+.claude/
+
+# Generated
+*.metadata.json
+test_redacted_multipage.pdf
+anonimaizer/
+pdf-pseudo-replica/
+
+# Commands
+Iniciar_PDF_Pseudo.command
+run_pdf_pseudo.command
+generate_pdf.py
+test_local_workflow.py

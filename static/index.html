@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnonDocs · Anonimización inteligente de documentos</title>
+    <meta name="description" content="Herramienta local y privada para la anonimización y restauración bidireccional de PII en documentos PDF en español.">
+    <meta name="robots" content="index, follow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css?v=3.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    </script>
+    <script type="module">
+        if(!HTMLElement.prototype.hasOwnProperty("popover")){
+            import("https://unpkg.com/@oddbird/popover-polyfill@latest");
+        }
+    </script>
+</head>
+<body>
+
+<div class="app-layout">
+
+    <!-- ====== Sidebar ====== -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="sidebar-logo">🛡</span>
+            <div class="sidebar-brand-text">
+                <span class="sidebar-app-name">AnonDocs</span>
+                <span class="sidebar-app-ver">v2.0</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="sidebar-nav-item active" data-nav="anonimizacion" onclick="switchNavSection('anonimizacion')">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Anonimización
+            </button>
+            <button class="sidebar-nav-item" data-nav="documentos" onclick="switchNavSection('documentos')">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Documentos
+            </button>
+            <button class="sidebar-nav-item" data-nav="configuracion" onclick="switchNavSection('configuracion')">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Configuración
+            </button>
+            <button class="sidebar-nav-item" data-nav="privacidad" onclick="switchNavSection('privacidad')">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Privacidad
+            </button>
+        </nav>
+        <div class="sidebar-footer-info">
+            <span class="status-dot online"></span>
+            Motor local activo · Presidio + GLiNER
+        </div>
+    </aside>
+
+    <!-- ====== Main Content ====== -->
+    <main class="main-content">
+
+        <!-- Content Header -->
+        <header class="content-header" id="sectionHeader">
+            <h1 class="content-title">Anonimización de documentos</h1>
+            <p class="content-subtitle">Sube un PDF, detecta información personal automáticamente y aplica redacción visual irreversible sobre el documento original.</p>
+        </header>
+
+        <!-- Stepper -->
+        <div class="stepper" id="stepperBar">
+            <div class="stepper-step active" data-step="1">
+                <div class="stepper-dot">1</div>
+                <span class="stepper-label">Detección</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-step" data-step="2">
+                <div class="stepper-dot">2</div>
+                <span class="stepper-label">Revisión</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-step" data-step="3">
+                <div class="stepper-dot">3</div>
+                <span class="stepper-label">Descarga</span>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MAIN CARD  (Tabs + Panels)                 -->
+        <!-- ========================================== -->
+        <div class="main-card" id="appMainCard">
+
+            <!-- Tabs -->
+            <nav class="tabs-nav" aria-label="Operaciones">
+                <button class="tab-btn active" id="tabAnonBtn" onclick="switchTab('anonimizar')" aria-selected="true" aria-controls="tabAnonPanel">
+                    Anonimizar PDF
+                </button>
+                <button class="tab-btn" id="tabRestBtn" onclick="switchTab('restaurar')" aria-selected="false" aria-controls="tabRestPanel">
+                    Restaurar Original
+                </button>
+            </nav>
+
+            <!-- ===== Panel Anonimizar ===== -->
+            <section id="tabAnonPanel" class="tab-panel active" role="tabpanel" aria-labelledby="tabAnonBtn">
+                <p class="panel-desc">Sube un PDF para detectar automáticamente datos personales (nombres, DNI, teléfonos, direcciones, emails, IBAN…) y aplicar redacción visual con cajas negras preservando el formato del documento.</p>
+
+                <form id="anonForm" onsubmit="return false">
+                    <div class="drop-zone" id="anonDropZone" onclick="document.getElementById('anonFileInput').click()" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(event, this)" ondrop="handleDrop(event, this, 'pdf')">
+                        <input type="file" id="anonFileInput" accept="application/pdf" multiple style="display: none;" onchange="handleFileSelect(this, 'pdf')">
+                        <div class="drop-zone-content">
+                            <div class="upload-icon">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                            </div>
+                            <h3 class="upload-title">Arrastra tus archivos PDF aquí</h3>
+                            <p class="upload-subtitle">o haz clic para seleccionarlos</p>
+                            <span class="file-limits">Varios documentos PDF en español</span>
+                        </div>
+                    </div>
+
+                    <!-- Cola de documentos subidos -->
+                    <div class="queue-container hidden" id="documentQueue">
+                        <div class="queue-header">
+                            <h4>Documentos en cola</h4>
+                            <span class="queue-count" id="queueCount">0</span>
+                        </div>
+                        <div class="queue-list" id="queueList"></div>
+                    </div>
+
+                    <div class="advanced-settings-card">
+                        <div class="settings-header">
+                            <span class="settings-icon">⚡</span>
+                            <h4>Detección Avanzada</h4>
+                        </div>
+                        <div class="settings-body">
+                            <div class="toggle-control">
+                                <div class="toggle-label-group">
+                                    <label for="useOllamaToggle" class="toggle-title">Usar LLM Local (Ollama)</label>
+                                    <span class="toggle-desc">Añade una capa de IA con Ollama ejecutándose localmente en el puerto 11434.</span>
+                                </div>
+                                <label class="switch" for="useOllamaToggle">
+                                    <input type="checkbox" id="useOllamaToggle">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="action-btn" id="anonSubmitBtn" onclick="startQueueAnalysis()" disabled>
+                        <span>Iniciar detección de datos sensibles</span>
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- ===== Panel Interactivo ===== -->
+            <section id="interactivePanel" class="interactive-panel hidden">
+                <div class="interactive-workspace">
+                    <div class="pdf-viewer-container">
+                        <div class="pdf-viewer-header">
+                            <div class="pdf-pagination">
+                                <button class="pager-btn" id="prevPageBtn" onclick="changePage(-1)" disabled>◀</button>
+                                <span class="page-num-display">Pág. <span id="currentPageNum">1</span> de <span id="totalPageNum">1</span></span>
+                                <button class="pager-btn" id="nextPageBtn" onclick="changePage(1)" disabled>▶</button>
+                            </div>
+                            <div class="zoom-controls">
+                                <button class="pager-btn zoom-btn" onclick="adjustZoom(-0.1)" title="Alejar">−</button>
+                                <span class="zoom-display" id="zoomLevelDisplay">100%</span>
+                                <button class="pager-btn zoom-btn" onclick="adjustZoom(0.1)" title="Acercar">+</button>
+                            </div>
+                            <button class="pager-btn box-mode-btn" id="boxModeBtn" onclick="toggleBoxMode()" title="Dibujar caja manual">⊞ Manual</button>
+                        </div>
+                        <div class="pdf-viewport-wrapper">
+                            <div id="pdfOverlayContainer" class="pdf-overlay-container">
+                                <canvas id="pdfRenderCanvas"></canvas>
+                                <div id="pdfTextLayer" class="textLayer"></div>
+                                <div id="highlightOverlayLayer" class="highlight-overlay-layer"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-filters">
+                        <div class="sidebar-header">
+                            <h4>Entidades Detectadas</h4>
+                            <span class="entities-counter-badge" id="entitiesCountBadge">0</span>
+                        </div>
+                        <div class="sidebar-subtabs" role="tablist">
+                            <button class="subtab-btn active" id="subtabTogglesBtn" onclick="switchSidebarTab('toggles')" role="tab" aria-selected="true" aria-controls="sidebarTogglesPanel">Categorías</button>
+                            <button class="subtab-btn" id="subtabListBtn" onclick="switchSidebarTab('list')" role="tab" aria-selected="false" aria-controls="sidebarListPanel">Datos Sensibles</button>
+                        </div>
+                        <div id="sidebarTogglesPanel" class="sidebar-tab-panel" role="tabpanel" aria-labelledby="subtabTogglesBtn">
+                            <span class="section-subtitle">Toggles Grupales</span>
+                            <div class="category-grid" id="categoryGrid"></div>
+                            <button type="button" class="add-manual-btn" onclick="openAddEntityModal()">+ Añadir Dato Manual</button>
+                        </div>
+                        <div id="sidebarListPanel" class="sidebar-tab-panel" role="tabpanel" aria-labelledby="subtabListBtn" hidden>
+                            <div class="search-box-container">
+                                <input type="text" id="entitySearchInput" placeholder="Buscar entidades..." oninput="filterEntitiesList()">
+                            </div>
+                            <span class="section-subtitle">Listado de Datos Sensibles</span>
+                            <div class="entities-list" id="entitiesList"></div>
+                        </div>
+                        <div class="sidebar-footer">
+                            <button type="button" class="action-btn" id="confirmAnonymizeBtn" onclick="submitAnonymization()">
+                                Redactar Selección
+                                <span class="btn-arrow">→</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== Panel Restaurar ===== -->
+            <section id="tabRestPanel" class="tab-panel" role="tabpanel" aria-labelledby="tabRestBtn" hidden>
+                <p class="panel-desc">Sube el PDF redactado junto con su archivo de clave <code>.key</code> para recuperar el documento original.</p>
+                <form id="restoreForm" onsubmit="handleRestore(event)">
+                    <div class="restore-drop-grid">
+                        <div class="restore-column">
+                            <label class="input-label">1. PDF Redactado</label>
+                            <div class="drop-zone mini" id="restPdfDropZone" onclick="document.getElementById('restPdfInput').click()" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(event, this)" ondrop="handleDrop(event, this, 'pdf_restore')">
+                                <input type="file" id="restPdfInput" accept="application/pdf" style="display: none;" onchange="handleFileSelect(this, 'pdf_restore')">
+                                <div class="drop-zone-content">
+                                    <div class="upload-icon-mini">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    </div>
+                                    <p class="upload-title-mini">Arrastra o haz clic</p>
+                                    <span class="file-selected-name" id="restPdfName">Ninguno seleccionado</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="restore-column">
+                            <label class="input-label">2. Archivo de Clave (.key)</label>
+                            <div class="drop-zone mini" id="restKeyDropZone" onclick="document.getElementById('restKeyInput').click()" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(event, this)" ondrop="handleDrop(event, this, 'key')">
+                                <input type="file" id="restKeyInput" accept=".key" style="display: none;" onchange="handleFileSelect(this, 'key')">
+                                <div class="drop-zone-content">
+                                    <div class="upload-icon-mini">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                    </div>
+                                    <p class="upload-title-mini">Arrastra o haz clic</p>
+                                    <span class="file-selected-name" id="restKeyName">Ninguno seleccionado</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="action-btn" id="restoreSubmitBtn" disabled>
+                        Restaurar Documento Original
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- ===== Procesamiento ===== -->
+            <section id="processingSection" class="processing-section hidden">
+                <div class="processing-spinner"></div>
+                <h3 class="processing-title">Procesando documento...</h3>
+                <p class="processing-status" id="processingStatusText">Analizando el texto del PDF...</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBarFill"></div>
+                </div>
+            </section>
+
+            <!-- ===== Resultados Anonimización ===== -->
+            <section id="anonResultsSection" class="results-section hidden">
+                <div class="results-header success-badge">
+                    <span class="badge-icon">✓</span>
+                    <h3>Redacción completada</h3>
+                </div>
+                <p class="results-intro">Se han aplicado cajas negras sobre todos los datos seleccionados. El formato original del documento se ha conservado.</p>
+                <div class="download-grid">
+                    <div class="download-card">
+                        <div class="download-icon-large">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                        <h4>PDF Redactado</h4>
+                        <p class="download-desc">Documento con cajas negras sobre los datos sensibles.</p>
+                        <button class="download-btn primary-btn" id="downloadAnonPdfBtn">Descargar PDF</button>
+                    </div>
+                    <div class="download-card">
+                        <div class="download-icon-large">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <h4>Archivo de Clave</h4>
+                        <p class="download-desc">Contiene el documento original cifrado. Necesario para restaurar.</p>
+                        <button class="download-btn primary-btn" id="downloadKeyBtn">Descargar Clave (.key)</button>
+                    </div>
+                </div>
+                <div class="stats-panel">
+                    <h4>Resumen de Protección</h4>
+                    <div class="stats-grid" id="statsGrid"></div>
+                    <div class="stats-summary" id="statsSummaryText">Total de datos protegidos: 0</div>
+                </div>
+                <button class="secondary-action-btn" onclick="resetToHome('anon')">← Procesar otro documento</button>
+            </section>
+
+            <!-- ===== Resultados Restauración ===== -->
+            <section id="restoreResultsSection" class="results-section hidden">
+                <div class="results-header success-badge">
+                    <span class="badge-icon">✓</span>
+                    <h3>Documento Restaurado</h3>
+                </div>
+                <p class="results-intro">Se ha extraído el documento original desde el archivo de clave y está listo para descargar.</p>
+                <div class="download-container-single">
+                    <div class="download-card center-card">
+                        <div class="download-icon-large">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                        <h4>Documento Original Restaurado</h4>
+                        <p class="download-desc" id="restoredFileNameLabel">documento_restaurado.pdf</p>
+                        <button class="download-btn primary-btn" id="downloadRestoredPdfBtn">Descargar PDF Original</button>
+                    </div>
+                </div>
+                <button class="secondary-action-btn" onclick="resetToHome('restore')">← Restaurar otro documento</button>
+            </section>
+
+            <!-- ===== Error ===== -->
+            <section id="errorSection" class="error-section hidden">
+                <div class="error-icon">⚠</div>
+                <h3 id="errorTitle">Ha ocurrido un error</h3>
+                <p id="errorMessage" class="error-msg-text">No se pudo procesar el archivo. Por favor, inténtelo de nuevo.</p>
+                <button class="action-btn error-retry-btn" onclick="returnToInputState()">Volver a intentarlo</button>
+            </section>
+        </div>
+    </main>
+</div>
+
+<!-- ===== Modal Añadir Dato Manual ===== -->
+<div id="addEntityModal" class="modal-overlay hidden" onclick="closeAddEntityModalOnOverlay(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Añadir Dato Manual</h3>
+            <button type="button" class="close-modal-btn" onclick="closeAddEntityModal()">✖</button>
+        </div>
+        <form id="addEntityForm" onsubmit="submitAddManualEntity(event)">
+            <div class="form-group">
+                <label for="manualEntityText" class="input-label">Texto exacto a anonimizar</label>
+                <input type="text" id="manualEntityText" required placeholder="Ej. Juan Pérez, 912345678, etc.">
+            </div>
+            <div class="form-group">
+                <label for="manualEntityType" class="input-label">Tipo de Información</label>
+                <select id="manualEntityType" required>
+                    <option value="PERSON">Nombre de Persona</option>
+                    <option value="DNI">DNI / NIE</option>
+                    <option value="PHONE">Teléfono</option>
+                    <option value="EMAIL">Email</option>
+                    <option value="ADDRESS">Dirección</option>
+                    <option value="ORGANIZATION">Organización / Empresa</option>
+                    <option value="IBAN">Cuenta Bancaria / Tarjeta</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="small-btn secondary-btn" onclick="closeAddEntityModal()">Cancelar</button>
+                <button type="submit" class="action-btn-compact">Añadir Dato</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== Context Menu ===== -->
+<div id="customContextMenu" popover="manual" class="context-menu">
+    <div class="context-menu-header">Categorizar selección:</div>
+    <div class="context-menu-list">
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('PERSON')"><span class="entity-type-badge badge-PERSON">Nombre</span></button>
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('DNI')"><span class="entity-type-badge badge-DNI">DNI / NIE</span></button>
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('PHONE')"><span class="entity-type-badge badge-PHONE">Teléfono</span></button>
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('EMAIL')"><span class="entity-type-badge badge-EMAIL">Email</span></button>
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('ADDRESS')"><span class="entity-type-badge badge-ADDRESS">Dirección</span></button>
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('ORGANIZATION')"><span class="entity-type-badge badge-ORGANIZATION">Organización</span></button>
+        <button type="button" class="context-menu-item" onclick="categorizeSelection('IBAN')"><span class="entity-type-badge badge-IBAN">Cuenta / Tarjeta</span></button>
+    </div>
+</div>
+
+<script src="/static/app.js?v=3.0"></script>
+</body>
+</html>
